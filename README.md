@@ -56,7 +56,8 @@ this.state = {
 ## 实例方法
 
 ### add: 将选中的温江添加到上传列表
-* 参数
+* 参数：`<input type="file">`元素`onchange`后的`e.target.files`
+* 必需是数组
 
 ```
 // 选中文件后立即上传
