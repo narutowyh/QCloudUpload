@@ -1,12 +1,25 @@
 # QCloud 视频上传组件
 * 依赖 jQuery（计划去除）、sha1.js
-* 支持拖放
+只要正确实现了`window.hex_sha1`方法即可，上传时会将整部视频读入并用`window.hex_sha1`计算读入文件的`sha1`值，并作为字段传给视频服务器，最终上传完成时服务器会服务器会比对传过去的`sha`值和所上传视频的`sha`值，不符合时会返回错误信息:`-174 ERROR_CMD_COS_SHA_NOT_EQU 文件SHA不一致
+`
 * 支持断点续传（QCloud原生支持）
 * 支持同时上传多部视频
 是否允许多文件同时上传请在具体业务中设置，并传入相应的maxUpNumAll参数
+* 同一个实例不可以上传两部`同名、同扩展名`的视频
 * `?`：待定或待完成
 
-## 入參
+## 最简单的例子
+
+```
+// 上传的参数（`*`为必填）
+var option = {
+    uploadUrl : "", // * 上传地址
+    maxUpNumAll : 1, // 只能上传一部视频
+}
+var uploader = new QCloudUpload();
+```
+
+## 全部入參(option)
 
 ### option.sizeToSlice ?
 * 超过多大的文件需要分片上传`byte（B）`
@@ -14,18 +27,21 @@
 
 ### option.maxUpNumOnce ？
 * `同时`可以上传多少个视频
+* 默认`1`
 
 ### option.maxUpNumAll
 * `一共`可以上传多少个视频
+* 默认`1`
 
 ### option.minSize ?
 * 可以上传文件的`最小`体积，`byte(B)`
-* 默认：无限制
+* 默认：`无限制`
 
 ### option.maxSize
 * 可以上传文件的`最大`体积，`byte(B)`
+* 默认`300mb`
 
-### option.uploadUrl
+### option.uploadUrl(必需)
 * 视频上传的地址
 * 参见[微视频api][api]
 * 注：[微视频api][api]中所说的`sign`参数以`?sign={xxxxxxx...}`的方式拼接到`uploadUrl`中（即`get`的方式）
@@ -34,11 +50,28 @@
 * 可以上传的文件的类型字符串,以`逗号`分隔，传`*`时不限制格式
 * 默认值： `"avi,wmv,mpeg,mp4,mov,flv,3gp"`
 
+## 视频信息的设置
+* 文件可以配置的信息参见：[微视频api][api]
+* 传递方法：在`<input type="file">`的`onchange`事件中将同名参数填入`file`对象中，例：
+
+```
+var uploader = new QCloudUpload();
+$("#file").on("change", function(e) {
+    e.target.files[0].video_cover  = "http://xxxx/some.png";     // 设置视频封面
+    e.target.files[0].video_title  = "母猪的产后护理.avi";         // 设置视频标题
+    e.target.files[0].video_desc   = "母猪产后...blah blah blah"; // 设置视频描述
+    e.target.files[0].magicContext = "http://xxxx";              // 设置用于透传回调用者的业务后台的字段
+    uploader.add(e.target.files);
+    uploader.upload();
+});
+```
+
 ## 实例属性
 
 ### fileList: 正在上传的文件数组
 * 无文件上传时为`[]`
 * 可以通过其中的元素引用到正在上传的`file对象`
+* 上传完毕的`file对象`中存在属性`uploadSucceed:true`
 
 ### uploaderList
 * `@self.fileList`中的每个文件都一一对应一个uploader对象:{ fileName : uploaderObj }
@@ -116,6 +149,7 @@ setTimeout(function() {
 |方法名|参数|执行时机|
 |----|---|---|
 |readFileStart |()|单个文件`开始读取`时执行|
+|readFileProgress |()|单个文件`读取中`重复时执行，不支持的浏览器不执行|
 |readFileEnd   |()|单个文件`读取完毕`时执行|
 |uploadStart   |()|单个文件`开始上传`时执行|
 |progress      |()|单个文件`上传过程中重复执行`，可用来动态显示上传进度、网速、剩余时间等|

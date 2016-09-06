@@ -1,34 +1,15 @@
 (function($) {
 
     // Uploader为用于上传文件的类，供组件类[@VideoUploadClass]内部使用，一个Uploader实例对应一部视频上传
-    var Uploader = function(file, op) {
-        var self = this;
-        self.defaults = {
-            getUploadArgsApi : "/ajax/house/mediaUpload?action=upload",
-            hostName         : "http://web.video.myqcloud.com/files/v1/",
-            appid            : "10011010",
+    var Uploader = function(file, ops) {
 
-            // 回调
-            onfileUploaded : null, // 每个文件上传成功执行,（fileName, successResult）
-            onprogress     : null // 上传过程中重复执行，用以判断上传进度(file, uploader),
-        };
-        self.ops = $.extend({}, self.defaults, op);
-
-        // 用于上传的参数，异步获取
-        self.upArgs = {
-            bucketName : self.ops.bucketName || "",
-            path : self.ops.path || "",
-            sign : self.ops.sign || "",
-            uploadUrl : self.ops.uploadUrl || "" // 在指定路径下创建视频
-        };
-
-        // 分片信息，第一片返回时初始化
-        self.offset = "";
-        self.session = "";
-        self.slice_size = "";
+        // 上传需要的数据，全都从服务器获取
+        this.offset = "";  // 每次获取
+        this.session = ""; // 上传第一片时获得
+        this.slice_size = ""; // 每次获取
 
         // 上传的状态
-        self.state = {
+        this.state = {
             uploading : false, // 上传中
             succeed   : false, // 上传完毕
             speed     : "",    // 上传速度（KB/s）
@@ -36,12 +17,11 @@
         };
 
         // 被上传的文件
-        self.file = file;
+        this.file = file;
     }
 
     // 读取文件的部分内容，兼容不同浏览器
     Uploader.prototype.blobSlice = function(blob, startByte, endByte) {
-        var self = this;
         if (blob.slice) {
             return blob.slice(startByte, endByte);
         } else if (blob.webkitSlice) {
@@ -49,16 +29,16 @@
         } else if (blob.mozSlice) {
             return blob.mozSlice(startByte, endByte);
         } else {
+            window.console && console.log("当前浏览器不支持文件分片，请更换浏览器上传");
             return null;
         }
     }
 
     // 填充formData
     Uploader.prototype.appendFormData = function(formData, data) {
-        var self = this;
-        $.each(data, function(k, v) {
-            formData.append(k, v);
-        });
+        for ( i in data ) {
+            formData.append(data[i]);
+        }
     }
 
     // 上传第一片
@@ -68,19 +48,20 @@
         var formData = new FormData();
         var file = self.file;
         reader.onerror = function() {
-            if ( !self.ops.onfileReadError(self.file, self) ) {
-                ajk.alert && ajk.alert("文件读取错误：" + self.file.name);
-                window.console && console.error("error occured: ", reader.error);
+
+            // 回调
+            if ( !self.ops.onfileReadError(file, self) ) {
+                window.console && console.error("error occured when read file: ", reader.error);
             }
         };
         reader.onload = function(e) {
-            if (!hex_sha1) {
-                window.console && console.error("sha算法的文件未引入");
+            if (!window.hex_sha1) {
+                window.console && console.error("window.hex_sha1算法未找到");
             }
             self.appendFormData(formData, {
                 op : "upload_slice", // 第一片固定值*
                 filesize : file.size, // 视频文件总大小*
-                sha : hex_sha1(reader.result) // 文件的sha值,必须提供*
+                sha : window.hex_sha1(reader.result) // 文件的sha值,必须提供*
             });
 
             // 可选的参数
@@ -101,7 +82,7 @@
             }
             $.ajax({
                 type : 'post',
-                url : self.upArgs.uploadUrl,
+                url : self.ops.uploadUrl,
                 data : formData,
                 dataType : "json",
                 processData : false,
@@ -113,7 +94,7 @@
                         self.uploadCompleted(r);
                         return;
                     }
-                    window.console && console.log("开始上传，文件大小：", file.size);
+                    window.console && console.log("开始上传，文件大小：", file.size + "B");
                     self.offset = r.data.offset;
                     self.session = r.data.session;
                     self.slice_size = r.data.slice_size;
@@ -121,6 +102,9 @@
                     self.uploadNextSlices();
                 },
                 error : function(err) {
+                    window.console && console.log("第一片信息上传失败，请刷新重试");
+
+                    // 回调
                     self.ops.onuploadError(file, err);
                 }
             });
@@ -128,7 +112,6 @@
             // 回调：读取文件完毕
             self.ops.onreadFileEnd(self.file);
         };
-        // reader.readAsDataURL( file );
         reader.readAsBinaryString( file );
 
         // 回调：开始读取文件
@@ -139,21 +122,23 @@
     Uploader.prototype.uploadNextSlices = function() {
         var self = this;
 
-        // 暂停中或已完成
+        // 暂停中
         if ( !self.state.uploading ) {
-            window.console && console.log("已暂停");
+            window.console && console.log("已暂停:", self.file);
             return false;
         }
         var reader = new FileReader();
         var formData = new FormData();
         var file = self.file;
         var blob = self.blobSlice(file, self.offset, self.offset + self.slice_size);
-        if ( false && self.offset + self.slice_size >= file.size ) { // 最后一片
-            window.console && console.log("last piece")
-            blob = self.blobSlice(file, self.offset, file.size);
-        }
+
+        // if ( false && self.offset + self.slice_size >= file.size ) { // 最后一片
+        //     window.console && console.log("last piece")
+        //     blob = self.blobSlice(file, self.offset, file.size);
+        // }
+
         reader.onerror = function() {
-            window.console && console.log("read file error")
+            window.console && console.log("next slices read file error");
         };
         reader.onload = function(e) {
             self.appendFormData(formData, {
@@ -165,7 +150,7 @@
             });
             $.ajax({
                 type : 'post',
-                url : self.upArgs.uploadUrl,
+                url : self.ops.uploadUrl,
                 data : formData,
                 dataType : "json",
                 processData : false,
@@ -180,99 +165,74 @@
                         self.uploadNextSlices();
                     } else { // 全部分片上传完毕
 
-                        // 回调：传递进度
+                        // 回调：传递进度（100%）
                         self.ops.onprogress(self.file.size, self.file.size, self.file, self);
                         self.uploadCompleted(r);
                     }
                 },
                 error : function(err) {
-                    window.console && console.log("upload remained slice error: ", err);
+                    window.console && console.log("upload remained slices error: ", err);
 
                     // 上传出错
                     self.ops.onuploadError(self.file);
                 }
             });
         }
-        reader.readAsDataURL( blob );
+        reader.readAsDataURL( blob ); // 试下别的
     }
 
     // 所有分片上传完毕 / 妙传成功
     Uploader.prototype.uploadCompleted = function(r) {
-        var self = this;
-        window.console && console.log("upload finished!");
-        self.state.uploading = false;
-        self.state.succeed = true;
-        self.file.uploadSucceed = true;
+        window.console && console.log("upload finished:", this.file);
+        this.state.uploading = false;
+        this.state.succeed = true;
+        this.file.uploadSucceed = true;
 
         // 回调：单个文件上传完毕，onfileUploaded
-        self.ops.onfileUploaded(self.file, r);
+        this.ops.onfileUploaded(this.file, r);
     }
 
     // 以下为Uploader实例的api **********************************************
 
-    // 将选中的文件上传
+    // 将上传列表中的文件上传
     Uploader.prototype.upload = function() {
-        var self = this;
-        if (self.state.succeed) {
-            window.console && console.log("此文件已上传过：", self.file)
+        if (this.state.succeed) {
             return;
-        } else if (self.state.uploading) {
-            window.console && console.log("文件正在上传中", self.file);
+        } else if (this.state.uploading) {
             return;
         } else {
-            self.getUploadArgs(function() {
-                self.uploadFirstSlice();
-            });
+            this.uploadFirstSlice();
         }
     }
 
     // 暂停上传
     Uploader.prototype.pause = function() {
-        var self = this;
-        if (self.state.uploading) {
-            window.console && console.log("触发了暂停操作");
-            self.state.uploading = false;
+        if (this.state.uploading) {
+            this.state.uploading = false;
         }
     }
 
     // 继续上传
     Uploader.prototype.resume = function() {
-        var self = this;
-        if (!self.state.uploading) {
-            self.state.uploading = true;
-            self.uploadNextSlices();
+        if (!this.state.uploading) {
+            this.state.uploading = true;
+            this.uploadNextSlices();
         }
     }
 
     // 取消上传
     Uploader.prototype.cancle = function() {
-        var self = this;
-        self.pause();
+        this.pause();
     }
 
 // =======================================================================================================================================
 
     window.QCloudUpload = function(op) {
-        var self = this;
-        self.defaults = {
-            sizeToSlice      : null,                                      // 超过多大的文件需要分片上传（B），默认全分片
-            maxUpNumOnce     : 1,                                         // 同时可以上传多少个
-            maxUpNumAll      : 1,                                         // 一共可以上传多少个
-            minSize          : 0,                                         // 可以上传文件的最大体积，byte(B)，默认无限制
-            maxSize          : 300 * 1024 * 1024,                         // 可以上传文件的最大体积，byte(B)
-            hostName         : "http://web.video.myqcloud.com/files/v1/", // 上传服务器的host
-            appid            : "10011010",
-            acceptedFormat   : "avi,wmv,mpeg,mp4,mov,flv,3gp",            // 可以上传的文件的类型字符串,以逗号分隔，传false时不限制格式
-        };
-        self.ops = $.extend({}, self.defaults, op);
+        this.ops = op;
+        this.ops.hostName = op.hostName || "http://web.video.myqcloud.com/files/v1/", // 上传服务器的host
         self.fileList = [];     // 正在上传的文件列表，每次选中文件后做push判断
         self.uploaderList = {}; // 上传时，@self.fileList中的每个文件都一一对应一个uploader对象{},元素为 ： fileName : uploaderObj
         self.eventList = {};    // 用于订阅模式的事件队列
-        self.init();
-    }
-
-    QCloudUpload.prototype.init = function() {
-        var self = this;
     }
 
     // 调用实例的@add方法时，针对每个文件生成一个对应的上传对象，并保存在@uploaderList中
@@ -283,9 +243,10 @@
             var file = fileList[i];
             var name = file.name;
 
+            // uploaderList对象中没有与文件对应的上传器时，初始化一个上传器
             if (!self.uploaderList[name]) {
 
-                // 初始化一个新的Uploader
+                // 初始化一个新的Uploader并保存
                 self.uploaderList[name] = new Uploader(file, {
                     onfileUploaded : function(file, successResult) {
                         if (self.ops.onfileUploaded) {
