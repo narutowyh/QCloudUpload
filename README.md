@@ -31,7 +31,7 @@
 * 注：[微视频api][api]中所说的`sign`参数以`?sign={xxxxxxx...}`的方式拼接到`uploadUrl`中（即`get`的方式）
 
 ### option.acceptedFormat
-* 可以上传的文件的类型字符串,以逗号分隔，传`*`时不限制格式
+* 可以上传的文件的类型字符串,以`逗号`分隔，传`*`时不限制格式
 * 默认值： `"avi,wmv,mpeg,mp4,mov,flv,3gp"`
 
 ## 实例属性
@@ -56,7 +56,7 @@ this.state = {
 
 ## 实例方法
 
-### add: 将选中的温江添加到上传列表
+### add: 将选中的文件添加到上传列表
 * 参数：`<input type="file">`元素`onchange`后的`e.target.files`
 * 必需是数组
 
