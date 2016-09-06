@@ -19,11 +19,11 @@
 * `一共`可以上传多少个视频
 
 ### option.minSize ?
-* 可以上传文件的最大体积，`byte(B)`
+* 可以上传文件的`最小`体积，`byte(B)`
 * 默认：无限制
 
 ### option.maxSize
-* 可以上传文件的最大体积，`byte(B)`
+* 可以上传文件的`最大`体积，`byte(B)`
 
 ### option.uploadUrl
 * 视频上传的地址
