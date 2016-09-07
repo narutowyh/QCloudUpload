@@ -16,7 +16,7 @@ var option = {
     uploadUrl : "", // * 上传地址
     maxUpNumAll : 1, // 只能上传一部视频
 }
-var uploader = new QCloudUpload();
+var uploader = new QCloudUpload(option);
 ```
 
 ## 全部入參(option)
