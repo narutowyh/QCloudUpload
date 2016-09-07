@@ -124,7 +124,7 @@ setTimeout(function() {
 
 |方法名|参数|执行时机|
 |----|---|---|
-|fileReadError |()|单个文件`读取失败`时执行|
+|fileReadError(file, reader, uploader) ||单个文件`读取失败`时执行|
 |fileReadStart |()|单个文件`开始读取`时执行|
 |fileReadProgress |()|单个文件`读取中持续`执行，不支持的浏览器不执行|
 |fileReadEnd   |()|单个文件`读取完毕`时执行|
