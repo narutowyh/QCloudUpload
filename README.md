@@ -34,6 +34,11 @@ var uploader = new QCloudUpload({
  */
 // 订阅 [添加文件] 后的回调
 uploader.on("addFile", function(file) {
+
+    // 文件已存在于上传列表中则直接返回
+    if (uploader.isExist(file.pieceHash)) {
+        return false;
+    }
     var uploadItem = $('<li class="upload-item">' +
                                 '<div class="progress"></div>' +
                                 '<span class="upBtn">上传</span>' +
@@ -142,11 +147,12 @@ $("#file").on("change", function(e) {
 // this.state 引用 [上传状态]:
 this.state :
 {
-    uploading : false, // 上传中
-    succeed   : false, // 上传完毕
-    speed     : "",    // 上传速度（KB/s）
-    remain    : "",    // 剩余时间
-    progress  : 75     // 已上传75%
+    uploading    : false, // 上传中
+    succeed      : false, // 上传完毕
+    speed        : "",    // 上传速度（B/s）
+    remainTime   : "",    // 剩余时间(s)
+    progress     : 75,    // 已上传75%，[0-100]
+    uploadedData : 521000 // 已上传的体积（B）
 }
 
 // this.file 引用 [视频文件]
@@ -155,6 +161,7 @@ this.file :
     name : "江北房源.mp4",
     size : 58943441, // B
     pieceHash : "2354d4fadf45sdfsdd",
+    hash : "4a5sd4f6sdf4..." // 文件真正的hash值，第一片读取后才会填入，可用于调试
     ...
 }
 ```
@@ -207,7 +214,7 @@ setTimeout(function() {
 }, 3000);
 ```
 
-### checkExist: 检查上传列表中是否存在`@pieceHash`文件
+### isExist: 检查上传列表中是否存在`@pieceHash`文件
 * 参数： `[pieceHash]`
 * return `true` or `false`
 
@@ -229,23 +236,26 @@ setTimeout(function() {
 * 正在上传中或已上传完毕的文件不受控制
 
 ## 所有支持订阅的方法名
+* 考虑到上传逻辑，每个方法名只能订阅`一次!`，重复订阅会抛出错误
 * 通过执行实例的`on`方法可以绑定以下方法，绑定的方法会在相应的时机执行，并带入有用的`参数`
-* 通过调用`off`方法将绑定的方法解绑，注意被解绑的函数需传递`引用`
+* 通过调用`off`方法将绑定的方法名解绑
 * 通过`trigger`方法手动触发绑定过的方法，此方法一般为类内部使用，`不推荐手动调用`
 * 订阅的回调函数中,`this`包含`state`属性、`file`属性，也可以调用`this`的相应方法控制上传流程
 
-|方法名|参数|执行时机|
-|----|---|---|
-|addFile ( file )                  |被添加进来的文件的引用|文件`被添加到上传列表`时执行，回调中的`@file`中会被填进`pieceHash` 字段|
-|fileReadError ( file, reader )    |`@file`：文件的引用，`@reader`：reader对象的引用   |单个文件`读取失败`时执行|
-|fileReadStart ( file, reader )    |`@file`：文件的引用，`@reader`：reader对象的引用   |单个文件`开始读取`时执行|
-|fileReadProgress ( file, reader ) |`@file`：文件的引用，`@reader`：reader对象的引用   |单个文件`读取中持续`执行，不支持的浏览器不执行|
-|fileReadEnd ( file, reader )      |`@file`：文件的引用，`@reader`：reader对象的引用   |单个文件`读取完毕`时执行|
-|uploadStart (  )                  |请在回调中通过`this`引用属性、方法                 |单个文件`开始上传`时执行，第一片的数据成功返回时|
-|uploadProgress (  )               |请在回调中通过`this`引用属性、方法                 |单个文件`上传过程中持续`执行，可用来动态显示上传进度、网速、剩余时间等|
-|uploadEnd (  )                    |请在回调中通过`this`引用属性、方法                 |单个文件`上传成功`时执行|
-|uploadError (  )                  |请在回调中通过`this`引用属性、方法                 |单个文件`上传过程中出错`时执行，可能发生在`uploadStart未成功时` `uploadProgress过程中`|
-|allCompleted ( fileList )         |请在回调中通过`this`引用属性、方法                 |`所有文件上传成功`时执行|
+|方法名|参数|执行时机|return false时|
+|----|---|---|---|
+|addFile ( file )            |被添加的文件|文件`被添加到上传列表`时执行，回调中的`@file`中会首次被填进`pieceHash` 字段|不会上传此文件(被跳过)|
+|fileReadError ( reader )    |`@reader`：reader对象的引用   |文件`读取失败`时执行，停止执行后续过程|--|
+|fileReadStart ( reader )    |`@reader`：reader对象的引用   |文件`开始读取`时执行|不会继续读取整个文件（文件过大时有用），后续仍然可以对其执行upload|
+|fileReadProgress ( reader ) |`@reader`：reader对象的引用   |文件`读取中持续`执行，不支持的浏览器不执行，`reader.lengthComputable`为`true`时可以拿到`reader.loaded`, `reader.total`|取消本次读取，后续仍然可以对其执行upload|
+|fileReadEnd ( reader )      |`@reader`：reader对象的引用   |文件`读取完毕`时执行|`暂停`上传，后续仍然可以对其执行upload|
+|uploadStart (  )            |请在回调中通过`this`引用属性、方法|第一片的数据成功返回后，文件`开始上传`时执行|`暂停`上传，后续仍然可以对其执行upload|
+|uploadPause (  )            |请在回调中通过`this`引用属性、方法|文件`暂停上传`时执行|--|
+|uploadResume (  )           |请在回调中通过`this`引用属性、方法|文件`恢复上传`时执行||
+|uploadProgress (  )         |请在回调中通过`this`引用属性、方法|文件`上传过程中持续`执行，可用来动态显示上传进度、网速、剩余时间等|--|
+|uploadEnd ( result )        |`@result`:上传成功后服务器返回的结果|文件`上传成功`时执行|--|
+|uploadError (  )            |请在回调中通过`this`引用属性、方法|文件`上传过程中出错`时执行，可能发生在`uploadStart未成功时` `uploadProgress过程中`||
+|allCompleted ( fileList )   |请在回调中通过`this`引用属性、方法|`所有文件上传成功`时执行||
 
 ## 其它
 
@@ -263,7 +273,7 @@ setTimeout(function() {
 * chrome
 * 360`极速模式`
 * 火狐版本
-* IE版本
+* IE版本 IE10 PR2不支持readAsBinaryString() 和 readAsArrayBuffer()，所以不支持上传视频 ????
 * safari版本
 * opera
 * 搜狗
