@@ -12,7 +12,7 @@
         this.file = file;
 
         // 上传的状态
-        this.file.state = {
+        this.state = {
             uploading : false, // 上传中
             succeed   : false, // 上传完毕
             speed     : "",    // 上传速度（KB/s）
@@ -101,7 +101,7 @@
                         self.offset = r.data.offset;
                         self.session = r.data.session;
                         self.slice_size = r.data.slice_size;
-                        self.file.state.uploading = true;
+                        self.state.uploading = true;
                         self.uploadNextSlices();
                     } else { // 有错误
 
@@ -131,7 +131,7 @@
         var self = this;
 
         // 暂停中
-        if ( !self.file.state.uploading ) {
+        if ( !self.state.uploading ) {
             window.console && console.log("已暂停:", self.file);
             return false;
         }
@@ -192,8 +192,8 @@
     // 所有分片上传完毕 / 妙传成功
     Uploader.prototype.uploadCompleted = function(r) {
         window.console && console.log("upload finished:", this.file);
-        this.file.state.uploading = false;
-        this.file.state.succeed = true;
+        this.state.uploading = false;
+        this.state.succeed = true;
 
         // 回调：单个文件上传完毕，onfileUploaded
         this.ops.onfileUploaded(this.file, r);
@@ -203,9 +203,9 @@
 
     // 将上传列表中的文件上传
     Uploader.prototype.upload = function() {
-        if (this.file.state.succeed) {
+        if (this.state.succeed) {
             return;
-        } else if (this.file.state.uploading) {
+        } else if (this.state.uploading) {
             return;
         } else {
             this.uploadFirstSlice();
@@ -214,15 +214,15 @@
 
     // 暂停上传
     Uploader.prototype.pause = function() {
-        if (this.file.state.uploading) {
-            this.file.state.uploading = false;
+        if (this.state.uploading) {
+            this.state.uploading = false;
         }
     }
 
     // 继续上传
     Uploader.prototype.resume = function() {
-        if (!this.file.state.uploading) {
-            this.file.state.uploading = true;
+        if (!this.state.uploading) {
+            this.state.uploading = true;
             this.uploadNextSlices();
         }
     }
@@ -315,7 +315,7 @@
     QCloudUpload.prototype.isAllUploaded = function() {
         var name = "";
         for (name in this.uploaderList) {
-            if (!this.uploaderList[name].file.state.succeed) {
+            if (!this.uploaderList[name].state.succeed) {
                 return false
             }
         }
@@ -421,15 +421,13 @@
 
     QCloudUpload.prototype.trigger = function(key, args) {
         var eventList = this.eventList;
-        var key = arguments.shift();
-        var args = arguments;
         var files = this.fileList;
         if (!eventList[key] || !eventList[key].length) {
             return false;
         } else {
             var fnList = eventList[key];
             for (var i =0, len = fnList.length; i < len; ++i) { // on订阅的事件依次全部执行
-
+                fnList[i].apply(args[0], args);
             }
         }
     }
