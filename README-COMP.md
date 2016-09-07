@@ -25,10 +25,30 @@ var uploader = new QCloudUpload();
 * 超过多大的文件需要分片上传`byte（B）`
 * 默认`一律分片`
 
+### option.maxUpNumOnce ？
+* `同时`可以上传多少个视频
+* 默认`1`
+
+### option.maxUpNumAll
+* `一共`可以上传多少个视频
+* 默认`1`
+
+### option.minSize ?
+* 可以上传文件的`最小`体积，`byte(B)`
+* 默认：`无限制`
+
+### option.maxSize
+* 可以上传文件的`最大`体积，`byte(B)`
+* 默认`300mb`
+
 ### option.uploadUrl(必需)
 * 视频上传的地址
 * 参见[微视频api][api]
 * 注：[微视频api][api]中所说的`sign`参数以`?sign={xxxxxxx...}`的方式拼接到`uploadUrl`中（即`get`的方式）
+
+### option.acceptedFormat
+* 可以上传的文件的类型字符串,以`逗号`分隔，传`*`时不限制格式
+* 默认值： `"avi,wmv,mpeg,mp4,mov,flv,3gp"`
 
 ## 视频信息的设置
 * 文件可以配置的信息参见：[微视频api][api]
@@ -50,12 +70,16 @@ $("#file").on("change", function(e) {
 
 ### fileList: 正在上传的文件数组
 * 无文件上传时为`[]`
-* 可以通过其中的元素引用到正在上传的`file对象`,正在上传的`file对象`中存在`state`字段:
+* 可以通过其中的元素引用到正在上传的`file对象`
+* 上传完毕的`file对象`中存在属性`uploadSucceed:true`
+
+### uploaderList
+* `@self.fileList`中的每个文件都一一对应一个uploader对象:{ fileName : uploaderObj }
+* 无文件上传时为`{}`
+* `@uploaderObj`中存储了文件的上传状态：
 
 ```
-// 第`0`个传输列表中的文件
-fileList[0].state :
-{
+this.state = {
     uploading : false, // 上传中
     succeed   : false, // 上传完毕
     speed     : "",    // 上传速度（KB/s）
@@ -119,20 +143,24 @@ setTimeout(function() {
 ## 支持的回调方法名
 * 通过执行实例的`on`方法可以绑定以下方法，绑定的方法会在特定的时机执行，并带入有用的`参数`
 * 通过调用`off`方法将绑定的方法解绑，注意被解绑的函数需传递`引用`
+* 通过`once`方法让绑定的方法只执行一次
 * 通过`trigger`方法手动触发绑定过的方法，此方法一般为类内部使用，`不推荐手动调用`
-* 订阅的回调中,`this`指向文件（其中包含了所有有用的数据，例如名字、尺寸、进度、网速、剩余时间等）
 
 |方法名|参数|执行时机|
 |----|---|---|
-|fileReadError |()|单个文件`读取失败`时执行|
-|fileReadStart |()|单个文件`开始读取`时执行|
-|fileReadProgress |()|单个文件`读取中持续`执行，不支持的浏览器不执行|
-|fileReadEnd   |()|单个文件`读取完毕`时执行|
-|uploadStart   |()|单个文件`开始上传`时执行，第一片的数据成功返回时|
-|uploadProgress      |()|单个文件`上传过程中持续`执行，可用来动态显示上传进度、网速、剩余时间等|
-|uploadEnd      |()|单个文件`上传成功`时执行|
-|uploadError   |()|单个文件`上传过程中出错`时执行，可能发生在`uploadStart未成功时` `uploadProgress过程中`|
+|readFileStart |()|单个文件`开始读取`时执行|
+|readFileProgress |()|单个文件`读取中`重复时执行，不支持的浏览器不执行|
+|readFileEnd   |()|单个文件`读取完毕`时执行|
+|uploadStart   |()|单个文件`开始上传`时执行|
+|progress      |()|单个文件`上传过程中重复执行`，可用来动态显示上传进度、网速、剩余时间等|
+|uploaded      |()|单个文件`上传成功`时执行|
 |allCompleted  |()|`所有文件上传成功`时执行|
+|fileReadError |()|单个文件`读取失败`时执行|
+|uploadError   |()|单个文件`上传过程中出错`时执行|
+|formatError   |()|选择的文件中`有非法格式`的视频时执行|
+|sizeError     |()|选择的文件中`有非法体积`的视频时执行|
+|numError      |()|选择文件后`数量超出限制`时执行|
+|repeatError   |()|选择文件后`有重复选择`时执行|
 
 ## 其它
 
