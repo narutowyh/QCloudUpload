@@ -81,7 +81,7 @@ $("#file").on("change", function(e) {
     uploader.add(e.target.files);
 });
 
-// 从别的文件域 [继续添加]
+// 从别的input [继续添加]
 $("#anotherFile").on("change", function(e) {
     uploader.add(e.target.files);
 });
