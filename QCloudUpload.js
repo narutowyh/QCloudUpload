@@ -211,8 +211,8 @@
             success : function(r) {
                 if (r.data.offset != undefined) { // 继续上传
 
-                    self.uploadedData += self.slice_size;
-                    self.progress = self.uploadedData / file.size;
+                    self.state.uploadedData += self.slice_size;
+                    self.state.progress = self.state.uploadedData / file.size * 100;
 
                     self.offset = r.data.offset + self.slice_size;
                     self.ops.onuploadProgress(self);
