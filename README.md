@@ -166,18 +166,18 @@ setTimeout(function() {
 
 |方法名|回调参数|执行时机|return false时|
 |----|---|---|---|
-|addFile ( file )            |被添加的文件|文件`被添加到上传列表`时执行，回调中的`@file`中会首次被填进`pieceHash` 字段。选中后立即自动上传请在此回调中调用`this.upload()`|此文件将会被忽略|
+|addFile ( file )            |被添加的文件|文件`被添加到上传列表`时执行，<br>  回调中的`@file`中会首次被填进`pieceHash` 字段。<br> 选中后立即自动上传请在此回调中调用`this.upload()`|此文件将会被忽略|
 |fileReadError ( reader )    |reader对象的引用   |文件`读取失败`时执行，停止执行后续过程|--|
-|fileReadStart ( reader )    |reader对象的引用   |文件`开始读取`时执行|不会继续读取整个文件（文件过大时有用），后续仍然可以对其执行upload|--|
-|fileReadProgress ( progress ) |progress对象的引用   |文件`读取中持续`执行，不支持的浏览器不执行，`progress.lengthComputable`为`true`时可以拿到`progress.loaded`, `progress.total`|取消本次读取，后续仍然可以对其执行upload|--|
-|fileReadEnd ( reader )      |reader对象的引用   |文件`读取完毕`时执行|此文件不会上传，后续仍然可以对其执行upload|--|
-|uploadStart (  )            |请在回调中通过`this`引用属性、方法|第一片的数据成功返回后，文件`开始上传`时执行|`暂停`上传，后续仍然可以对其执行upload|--|
-|uploadPause (  )            |请在回调中通过`this`引用属性、方法|文件`暂停上传`时执行|--|
-|uploadResume (  )           |请在回调中通过`this`引用属性、方法|文件`恢复上传`时执行|--|
+|fileReadStart ( reader )    |reader对象的引用   |文件`开始读取`时执行|不会继续读取整个文件（文件过大时有用），<br> 后续仍然可以对其执行upload|--|
+|fileReadProgress ( progress ) |progress对象的引用   |文件`读取中持续`执行，不支持的浏览器不执行.<br> `progress.lengthComputable`为`true`时<br> 可以拿到`progress.loaded`, `progress.total`|取消本次读取，后续仍然可以对其执行upload|--|
+|fileReadEnd ( reader )      |reader对象的引用   |文件`读取完毕`时执行|此文件不会上传，<br> 后续仍然可以对其执行upload|--|
+|uploadStart (  )            ||第一片的数据成功返回后，<br> 文件`开始上传`时执行|`暂停`上传，后续仍然可以对其执行upload|--|
+|uploadPause (  )            ||文件`暂停上传`时执行|--|
+|uploadResume (  )           ||文件`恢复上传`时执行|--|
 |uploadCancle (  )           ||文件`被移除`时执行|取消移除操作|
-|uploadProgress (  )         |请在回调中通过`this`引用属性、方法|文件`上传过程中持续`执行，可用来动态显示上传进度、网速、剩余时间等|--|
+|uploadProgress (  )         ||文件`上传过程中持续`执行，<br> 可用来动态显示上传进度、网速、剩余时间等|--|
 |uploadEnd ( result )        |上传成功后服务器返回的结果|文件`上传成功`时执行|--|
-|uploadError (  )            ||文件`上传过程中出错`时执行，可能发生在`uploadStart未成功时` `uploadProgress过程中`|--|
+|uploadError (  )            ||文件`上传过程中出错`时执行，<br> 可能发生在`uploadStart未成功时`<br>  `uploadProgress过程中`|--|
 |allCompleted ()             ||`所有文件上传成功`时执行|--|
 
 ## 其它
