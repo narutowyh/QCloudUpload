@@ -6,11 +6,7 @@
         self.defaults = {
             getUploadArgsApi : "/ajax/house/mediaUpload?action=upload",
             hostName         : "http://web.video.myqcloud.com/files/v1/",
-            appid            : "10011010",
-
-            // 回调
-            onfileUploaded : null, // 每个文件上传成功执行,（fileName, successResult）
-            onprogress     : null // 上传过程中重复执行，用以判断上传进度(file, uploader),
+            appid            : "10011010"
         };
         self.ops = $.extend({}, self.defaults, op);
 

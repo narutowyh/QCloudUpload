@@ -2,6 +2,7 @@
 
     // Uploader为用于上传文件的类，供组件类[@VideoUploadClass]内部使用，一个Uploader实例对应一部视频上传
     var Uploader = function(file, ops) {
+        this.ops = ops;
 
         // 上传需要的数据，全都从服务器获取
         this.offset = "";     // 每次获取
@@ -32,7 +33,7 @@
         } else if (blob.mozSlice) {
             return blob.mozSlice(startByte, endByte);
         } else {
-            window.console && console.log("当前浏览器不支持文件分片，请更换浏览器上传");
+            window.console && console.error(">> 当前浏览器不支持文件分片，请更换浏览器上传");
             return null;
         }
     }
@@ -41,7 +42,7 @@
         if (window.FileReader) {
             return new FileReader();
         } else {
-            window.console && console.log("浏览器不支持File API");
+            window.console && console.error(">> 浏览器不支持File API");
             return false;
         }
     }
@@ -50,7 +51,7 @@
         if (window.FormData) {
             return new FormData();
         } else {
-            window.console && console.log("浏览器不支持FormData");
+            window.console && console.error(">> 浏览器不支持FormData");
             return false;
         }
     }
@@ -59,7 +60,7 @@
         if (window.hex_sha1) {
             return hex_sha1(str);
         } else {
-            window.console && console.log("请引入window.hex_sha1方法");
+            window.console && console.error(">> 请引入window.hex_sha1方法");
             return false;
         }
     }
@@ -67,7 +68,7 @@
     // 填充formData
     Uploader.prototype.appendFormData = function(formData, data) {
         for ( i in data ) {
-            formData.append(data[i]);
+            formData.append(i, data[i]);
         }
     }
 
@@ -87,7 +88,7 @@
         reader.onprogress = function(e) {
 
             // 回调3 ： onfileReadProgress
-            if ( self.ops.onfileReadProgress(self, e.target) === false ) {
+            if ( self.ops.onfileReadProgress(self, e) === false ) {
                 e.target.abort();
             }
         }
@@ -120,7 +121,7 @@
         if ( self.ops.onuploadStart(self) === false ) {
             return;
         }
-        window.console && console.log("开始上传，文件大小：", file.size + "B");
+        window.console && console.log(">> 开始上传，文件大小：", file.size + "B");
 
         self.appendFormData(formData, {
             op : "upload_slice", // 第一片固定值*
@@ -157,7 +158,7 @@
                 if (r.data.access_url) {
                     self.uploadCompleted(r);
                     return;
-                } else if (r.data.offset && r.data.session) {
+                } else if (r.data.offset !== undefined && r.data.session) {
                     self.offset = r.data.offset;
                     self.session = r.data.session;
                     self.slice_size = r.data.slice_size;
@@ -173,7 +174,7 @@
                 }
             },
             error : function(err) {
-                window.console && console.log("第一片信息上传失败，请刷新重试");
+                window.console && console.error(">> 第一片信息上传失败，请刷新重试");
 
                 // 回调7 uploadError
                 self.ops.onuploadError(self);
@@ -187,18 +188,12 @@
 
         // 暂停中
         if ( !self.state.uploading ) {
-            window.console && console.log("已暂停:", self.file);
             return false;
         }
         var reader = newReader();
         var formData = newFormData();
         var file = self.file;
         var blob = blobSlice(file, self.offset, self.offset + self.slice_size);
-
-        // if ( false && self.offset + self.slice_size >= file.size ) { // 最后一片
-        //     window.console && console.log("last piece")
-        //     blob = blobSlice(file, self.offset, file.size);
-        // }
         self.appendFormData(formData, {
             op : "upload_slice", // 固定值*
             filecontent : blob, // 视频文件内容
@@ -230,14 +225,13 @@
 
                 // 回调7 上传出错
                 self.ops.onuploadError(self);
-                window.console && console.log("upload remained slices error: ", err);
+                window.console && console.error("upload remained slices error: ", err);
             }
         });
     }
 
-    // 所有分片上传完毕 / 妙传成功
+    // 所有分片上传完毕 / 秒传成功
     Uploader.prototype.uploadCompleted = function(r) {
-        window.console && console.log("upload finished:", this.file);
 
         // 回调8：传递进度（100%）
         this.uploadedData = this.file.size;
@@ -246,8 +240,8 @@
         this.speed = 0;
         this.succeed = true;
         this.uploading = false;
-        self.ops.onuploadProgress(self); // 回调6：传递进度
-        self.ops.onuploadEnd(self, r);  // 回调8 结束
+        this.ops.onuploadEnd(this, r);  // 回调8 结束
+        window.console && console.log(">> upload finished:", this.file);
     }
 
     // 以下为Uploader实例的api **********************************************
@@ -270,10 +264,11 @@
     Uploader.prototype.pause = function() {
         if (this.state.uploading) {
             this.state.uploading = false;
+            window.console && console.log(">> 已暂停: ", this);
         }
 
         // 回调9
-        self.ops.onuploadPause(self);
+        this.ops.onuploadPause(self);
     }
 
     // 继续上传
@@ -284,7 +279,7 @@
         }
 
         // 回调10
-        self.ops.onuploadResume(self);
+        this.ops.onuploadResume(this);
     }
 
     // 取消上传
@@ -306,9 +301,9 @@
     window.QCloudUpload = function(op) {
         this.ops = op;
         this.ops.uploadUrl = op.uploadUrl || "http://web.video.myqcloud.com/files/v1/", // 上传服务器的host
-        self.fileList = [];     // 正在上传的文件列表，每次选中文件后做push判断
-        self.uploaderList = {}; // 上传时，@self.fileList中的每个文件都一一对应一个uploader对象{},元素为 ： fileName : uploaderObj
-        self.eventList = {};    // 用于订阅模式的事件队列
+        this.fileList = [];     // 正在上传的文件列表，每次选中文件后做push判断
+        this.uploaderList = {}; // 上传时，@self.fileList中的每个文件都一一对应一个uploader对象{},元素为 ： fileName : uploaderObj
+        this.eventList = {};    // 用于订阅模式的事件队列
     }
 
     // 调用实例的@add方法时，针对每个文件生成一个对应的上传对象，并保存在@uploaderList中
@@ -349,6 +344,10 @@
                 return self.trigger("uploadResume", [uploader]);
             }
         });
+        var a = [];
+        a.push(self.uploaderList[file.pieceHash]);
+        a.push(file);
+        self.trigger("addFile", a);
     }
 
     // api ***************************************************
@@ -364,13 +363,8 @@
                     file.pieceHash = getSha1(e.target.result);
                     self.fileList.push(file);
 
-                    // trigger addFile
-                    if (self.trigger("addFile", [file]) !== false) {
-
-                        // 初始化此视频的上传器
-                        self._initUploader(file);
-                    }
-
+                    // 初始化此视频的上传器
+                    self._initUploader(file);
                 }
                 var blob = blobSlice(file, 0, 128);
                 reader.readAsDataURL( blob );
@@ -438,15 +432,14 @@
 
     // 全部上传
     QCloudUpload.prototype._uploadAll = function() {
-        var name = "";
-        for (name in this.uploaderList) {
+        var name = 0;
+        for (var name in this.uploaderList) {
             this.uploaderList[name].upload();
         }
     }
 
     // 全部暂停上传
     QCloudUpload.prototype._pauseAll = function() {
-        var name = "";
         for (name in this.uploaderList) {
             this.uploaderList[name].pause();
         }
@@ -454,7 +447,7 @@
 
     // 全部继续上传
     QCloudUpload.prototype._resumeAll = function() {
-        var name = "";
+        var name;
         for (name in this.uploaderList) {
             this.uploaderList[name].resume();
         }
@@ -462,8 +455,7 @@
 
     // 全部取消上传
     QCloudUpload.prototype._cancleAll = function() {
-        var name = "";
-        for (name in this.uploaderList) {
+        for (var name in this.uploaderList) {
             this.uploaderList[name].cancle();
         }
     }
@@ -480,7 +472,7 @@
         if (!eventList[key]) {
             eventList[key] = fn;
         } else {
-            window.console && console.error("不要重复订阅" + key + "方法！");
+            window.console && console.error(">> 不要重复订阅" + key + "方法！");
         }
     }
 
@@ -498,7 +490,7 @@
         var files = this.fileList;
         var _this = args.shift();
         if (!fn) {
-            return false;
+            return;
         } else {
             return fn.apply(_this, args);
         }

@@ -1,11 +1,11 @@
 # QCloud 视频上传
 * 依赖 sha1.js
 
-> 只要正确实现了`window.hex_sha1`方法即可，上传时会将整部视频读入并用`window.hex_sha1`计算读入文件的`sha1`值，并作为字段传给视频服务器，最终上传完成时服务器会比对传过去的`sha1`值和所上传视频的`sha1`值，不符合时会返回错误信息:`-174 ERROR_CMD_COS_SHA_NOT_EQU 文件SHA不一致
+> 只要在页面上正确实现了`window.hex_sha1`方法即可。上传时组件会将整部视频读入并尝试用`window.hex_sha1`函数计算读入文件的`sha1`值。并在第一片时将其传给视频服务器，当所有分片上传完成之后，服务器会比对开始传过去的`sha1`值和服务器自己算出来的`sha1`值是否相同，若不相同会返回错误信息:`-174 ERROR_CMD_COS_SHA_NOT_EQU 文件SHA不一致
 `
 
 * 支持断点续传
-* 支持同时上传多部视频
+* 支持同时上传多部视频(不推荐，QCloud服务器对多部视频同时上传支持不好，见文末)
 
 ## 最简单的例子
 
@@ -39,8 +39,10 @@ uploader.on("addFile", function(file) {
     if (uploader.isExist(file.pieceHash)) {
         return false;
     }
+
+    // 在页面上插入一个上传进度条和控制按钮
     var uploadItem = $('<li class="upload-item">' +
-                                '<div class="progress"></div>' +
+                                '<div class="progress">已上传<span></span></div>' +
                                 '<span class="upBtn">上传</span>' +
                                 '<span class="pauseBtn">暂停</span>' +
                                 '<span class="cancleBtn">取消</span>' +
@@ -68,12 +70,7 @@ uploader.on("uploadEnd", function() {
 // 订阅回调： [某个文件的上传进度]
 uploader.on("uploadProgress", function() {
     $("#uploadList").find("." + this.file.pieceHash)   // 通过文件的pieceHash值将上传的文件和DOM节点一一对应
-                    .html(this.state.progress + "%");
-
-    // 中途可以暂停
-    if ( {something happened} ) {
-        this.pause();
-    }
+                    .children().html(this.state.progress + "%");
 });
 
 // [添加] 需要上传的文件
@@ -120,6 +117,7 @@ $("#uploadList").on("click", ".cancleBtn", function(e) {
 ### option.uploadUrl(必需)
 * 视频上传的地址，即视频将被上传到QCloud服务器的哪个路径，参见[微视频api][api]
 * 注：[微视频api][api]中所说的`sign`参数以`?sign={xxxxxxx...}`的方式拼接到`uploadUrl`中（即`get`的方式）
+* `sign`需要做`URL编码`
 
 ## 视频信息的设置(若需要)
 * 文件可以配置的信息参见：[微视频api][api]
@@ -127,6 +125,9 @@ $("#uploadList").on("click", ".cancleBtn", function(e) {
 
 ```
 var uploader = new QCloudUpload();
+uploader.on("addFile", function(file) {
+    this.upload(); // 添加进来文件之后立即上传
+});
 
 // 这里以设置第一个文件的信息为例
 $("#file").on("change", function(e) {
@@ -136,7 +137,6 @@ $("#file").on("change", function(e) {
     file.video_desc   = "母猪产后...blah blah blah"; // 设置视频描述
     file.magicContext = "http://xxxx";              // 设置用于透传回调用者的业务后台的字段
     uploader.add(e.target.files);
-    uploader.upload(); // 上传
 });
 ```
 
@@ -185,13 +185,15 @@ this.cancle() // 取消上传
 * 必需是数组（`e.target.files`本来就是数组...）
 
 ```
-// 选中文件后立即上传
+// 选中文件后立即自动上传的方法：
 var uploader = new QCloudUpload({
     uploadUrl ： “http://xxx”
 });
+uploader.on("addFile", function(file) {
+    this.upload(); // 将添加进来的文件立即上传
+});
 $("#file").on("change", function(e) {
     uploader.add(e.target.files);
-    uploader.upload();
 });
 ```
 
@@ -202,10 +204,14 @@ $("#file").on("change", function(e) {
 * 移除后，文件及其上传进程都会被删掉，不可逆
 
 ```
-var uploader = new QCloudUpload(ops);
+var uploader = new QCloudUpload({
+    uploadUrl ： “http://xxx”
+});
+uploader.on("addFile", function(file) {
+    this.upload(); // 将添加进来的文件立即上传
+});
 $("#file").on("change", function(e) {
     uploader.add(e.target.files);
-    uploader.upload();
 });
 
 // 3s后取消所有上传
@@ -241,19 +247,20 @@ setTimeout(function() {
 * 通过调用`off`方法将绑定的方法名解绑
 * 通过`trigger`方法手动触发绑定过的方法，此方法一般为类内部使用，`不推荐手动调用`
 * 订阅的回调函数中,`this`包含`state`属性、`file`属性，也可以调用`this`的相应方法控制上传流程
+* `fileReadStart`、`fileReadProgress`、`fileReadEnd`、`fileReadError`四个跟文件读取相关的事件会在实例的`upload`方法之后自动依次触发。因为`upload`方法被调用时，组件会先将文件读入，四个`fileReader`也就会随即依次触发。
 
 |方法名|参数|执行时机|return false时|
 |----|---|---|---|
-|addFile ( file )            |被添加的文件|文件`被添加到上传列表`时执行，回调中的`@file`中会首次被填进`pieceHash` 字段|不会上传此文件(被跳过)|
-|fileReadError ( reader )    |`@reader`：reader对象的引用   |文件`读取失败`时执行，停止执行后续过程|--|
-|fileReadStart ( reader )    |`@reader`：reader对象的引用   |文件`开始读取`时执行|不会继续读取整个文件（文件过大时有用），后续仍然可以对其执行upload|
-|fileReadProgress ( reader ) |`@reader`：reader对象的引用   |文件`读取中持续`执行，不支持的浏览器不执行，`reader.lengthComputable`为`true`时可以拿到`reader.loaded`, `reader.total`|取消本次读取，后续仍然可以对其执行upload|
-|fileReadEnd ( reader )      |`@reader`：reader对象的引用   |文件`读取完毕`时执行|`暂停`上传，后续仍然可以对其执行upload|
+|addFile ( file )            |被添加的文件|文件`被添加到上传列表`时执行，回调中的`@file`中会首次被填进`pieceHash` 字段。选中后立即自动上传请在此回调中调用`this.upload()`|此文件将会被忽略|
+|fileReadError ( reader )    |reader对象的引用   |文件`读取失败`时执行，停止执行后续过程|--|
+|fileReadStart ( reader )    |reader对象的引用   |文件`开始读取`时执行|不会继续读取整个文件（文件过大时有用），后续仍然可以对其执行upload|
+|fileReadProgress ( progress ) |progress对象的引用   |文件`读取中持续`执行，不支持的浏览器不执行，`progress.lengthComputable`为`true`时可以拿到`progress.loaded`, `progress.total`|取消本次读取，后续仍然可以对其执行upload|
+|fileReadEnd ( reader )      |reader对象的引用   |文件`读取完毕`时执行|`暂停`上传，后续仍然可以对其执行upload|
 |uploadStart (  )            |请在回调中通过`this`引用属性、方法|第一片的数据成功返回后，文件`开始上传`时执行|`暂停`上传，后续仍然可以对其执行upload|
 |uploadPause (  )            |请在回调中通过`this`引用属性、方法|文件`暂停上传`时执行|--|
 |uploadResume (  )           |请在回调中通过`this`引用属性、方法|文件`恢复上传`时执行||
 |uploadProgress (  )         |请在回调中通过`this`引用属性、方法|文件`上传过程中持续`执行，可用来动态显示上传进度、网速、剩余时间等|--|
-|uploadEnd ( result )        |`@result`:上传成功后服务器返回的结果|文件`上传成功`时执行|--|
+|uploadEnd ( result )        |上传成功后服务器返回的结果|文件`上传成功`时执行|--|
 |uploadError (  )            |请在回调中通过`this`引用属性、方法|文件`上传过程中出错`时执行，可能发生在`uploadStart未成功时` `uploadProgress过程中`||
 |allCompleted ( fileList )   |请在回调中通过`this`引用属性、方法|`所有文件上传成功`时执行||
 
@@ -267,6 +274,10 @@ setTimeout(function() {
 * 原理：微云服务器会自动判断要上传的视频是不是可以断点续传的视频，并在第一次分片请求回的`offset`字段中自动将`offset`设置好，后续分片从这个`offset`处开始取即可
 * 所以：刚进页面时`无法`获取上传过的视频和关闭页面时正在上传的视频及其进度，只有用户选择了某个视频并开始上传之后才能从服务器获取到这些信息
 * 已上传过的视频会被`秒传`
+
+### 注意点
+* 文件已存在时也可能会报错：`-177 ERROR_CMD_COS_FILE_EXIST 文件已存在`。`多部视频同时上传时`可能会遇到
+* 文件过大时会返回错误： `-181 ERROR_CMD_COS_ERROR 存储后端错误`(尝试的文件大小为1.14GB)
 
 ### 兼容性
 #### 兼容浏览器 ?
