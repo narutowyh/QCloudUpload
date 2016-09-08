@@ -346,10 +346,11 @@
                 return self.trigger("uploadError", [uploader]);
             },
             onuploadEnd : function(uploader, r) {
-                return self.trigger("uploadEnd", [uploader, r]);
+                var result = self.trigger("uploadEnd", [uploader, r]);
                 if ( self.isAllUploaded() ) {
                     self.trigger("allCompleted", [uploader, reader]);
                 }
+                return result;
             },
             onuploadPause : function(uploader) {
                 return self.trigger("uploadPause", [uploader]);

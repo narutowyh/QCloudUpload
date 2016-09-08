@@ -186,6 +186,9 @@ setTimeout(function() {
 * [微视频api][api]
 * [微视频服务器错误对照表](https://www.qcloud.com/doc/product/227/1833#4-proxy-.E9.94.99.E8.AF.AF.E7.A0.81)
 
+### 实例
+* 参见文件夹中的demo-component，一个基于QCloudUpload.js封装出来的一个组件，带有尺寸、格式的校验功能。
+
 ### 断点续传
 * 断点续传的功能组件已封装好，用户再次上传曾上传过的视频时会自动从相应`进度`开始上传
 * 原理：微云服务器会自动判断要上传的视频是不是可以断点续传的视频，并在第一次分片请求回的`offset`字段中自动将`offset`设置好，后续分片从这个`offset`处开始取即可
