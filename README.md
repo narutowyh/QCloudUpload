@@ -136,7 +136,7 @@ setTimeout(function() {
     if ( !uploader.uploaderList.file_piece_hash.state.succeed ) {
         uploader.cancle();
     }
-}, 3000);
+}, 10000);
 ```
 
 ### isAllUploaded: 监测是否所有文件`都已经上传完毕`
