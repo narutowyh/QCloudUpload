@@ -1,7 +1,7 @@
 # QCloud 视频上传
 * 依赖 sha1.js
 
-> 只要正确实现了`window.hex_sha1`方法即可，上传时会将整部视频读入并用`window.hex_sha1`计算读入文件的`sha1`值，并作为字段传给视频服务器，最终上传完成时服务器会服务器会比对传过去的`sha`值和所上传视频的`sha`值，不符合时会返回错误信息:`-174 ERROR_CMD_COS_SHA_NOT_EQU 文件SHA不一致
+> 只要正确实现了`window.hex_sha1`方法即可，上传时会将整部视频读入并用`window.hex_sha1`计算读入文件的`sha1`值，并作为字段传给视频服务器，最终上传完成时服务器会比对传过去的`sha1`值和所上传视频的`sha1`值，不符合时会返回错误信息:`-174 ERROR_CMD_COS_SHA_NOT_EQU 文件SHA不一致
 `
 
 * 支持断点续传
