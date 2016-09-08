@@ -1,112 +1,111 @@
 /**
-*
+* 只能上传一部视频的上传组件
+* 文档：http://gitlab.corp.anjuke.com/yaohuiwang/qcloudupload-js/tree/master
 */
 ;APF.Namespace.register("ajk");
 (function($, ns) {
     ns.VideoUploadClass = function(op) {
         var self = this;
         self.defaults = {
-            fileIptSlter : "",
+            fileIptSlter     : "#fileSlter",
             getUpArgsApi     : "/ajax/house/mediaUpload?action=upload",
-            maxUpNumOnce     : 1,                                         // 同时可以上传多少个
-            maxUpNumAll      : 1,                                         // 一共可以上传多少个
-            minSize          : 0,                                         // 可以上传文件的最大体积，byte(B)，默认无限制
             maxSize          : 300 * 1024 * 1024,                         // 可以上传文件的最大体积，byte(B)
             hostName         : "http://web.video.myqcloud.com/files/v1/", // 上传服务器的host
             appid            : "10011010",
-            acceptedFormat   : "avi,wmv,mpeg,mp4,mov,flv,3gp",            // 可以上传的文件的类型字符串,以逗号分隔，传false时不限制格式
+            acceptedFormat   : "avi,wmv,mpeg,mp4,mov,flv,3gp"            // 可以上传的文件的类型字符串,以逗号分隔，传false时不限制格式
         };
         self.ops = $.extend({}, self.defaults, op);
         self.nodes = {
             fileIpt : $(self.ops.fileIptSlter)
         };
+
+        // 上传的路径参数，每个视频都从@getUpArgsApi接口获取
         self.upArgs = {
-            bucketName : self.ops.bucketName || "",
-            path : self.ops.path || "",
-            sign : self.ops.sign || "",
-            uploadUrl : self.ops.uploadUrl || "" // 在指定路径下创建视频
+            bucketName : "",
+            path : "",
+            sign : "",
+            uploadUrl : ""
         };
-        self.uploader = null;
+        self.uploader = new QCloudUpload();
+        this.fileList = [];
+        this.eventList = {};
         self.init();
     }
 
     ns.VideoUploadClass.prototype.init = function() {
         var self = this;
-        self.getUploadArgs(function() {
-            self.initUploaderEvent();
-            self.bindEvent();
-        });
+        self.bindUploadEvent(); // 绑定上传逻辑
+        self.bindEvent(); // 绑定交互逻辑
     }
 
+    // 用于获取文件的上传地址
     ns.VideoUploadClass.prototype.getUploadArgs = function(callback) {
         var self = this;
-
         $.ajax({
             url : self.ops.getUpArgsApi,
             type : "get",
             dataType : "json",
             data : {},
             success : function(r) {
-                self.upArgs.bucketName = r.data.bucketName;
-                self.upArgs.path = r.data.path;
-                self.upArgs.sign = encodeURIComponent(r.data.sign);
-                self.upArgs.uploadUrl = self.ops.hostName + self.ops.appid + "/" + self.upArgs.bucketName + self.upArgs.path + "?sign=" + self.upArgs.sign;
-                callback && callback();
+                if (r.data.sign) {
+                    callback && callback( self.ops.hostName + self.ops.appid + "/" + r.data.bucketName + r.data.path + "?sign=" + encodeURIComponent(r.data.sign) );
+                } else {
+                    window.console && console.error(">> 获取上传参数失败");
+                }
             },
             error : function(err) {
-                window.console && console.log("上传字段请求出错");
+                window.console && console.log(">> 获取上传参数失败");
             }
         });
     }
 
-    ns.VideoUploadClass.prototype.initUploaderEvent = function() {
+    ns.VideoUploadClass.prototype.bindUploadEvent = function() {
         var self = this;
-        self.uploader =new QCloudUpload({
-            uploadUrl : self.upArgs.uploadUrl
-        });
         var uploader = self.uploader;
+
+        // 添加后立即上传
         uploader.on("addFile", function(file) {
-            // this.upload();
+            this.upload(); // 下面的事件会被依次触发
         });
 
-        uploader.on("fileReadStart", function(file) {
-            // window.console && console.log("fileReadStart", this);
+        // 开始读取文件，
+        uploader.on("fileReadStart", function(reader) {
+            self.handleFileReadStart(reader);
         });
 
+        // 读取文件进度
         uploader.on("fileReadProgress", function(progress) {
-            // window.console && console.log("fileReadProgress", this);
-            // window.console && console.log(this.state.);
-            $("#progress").html(progress.loaded / progress.total * 100 + "%");
+            self.fileReadProgress(progress);
         });
 
-        uploader.on("fileReadEnd", function(file) {
-            // window.console && console.log("fileReadEnd", this);
+        // 读取完毕
+        uploader.on("fileReadEnd", function(reader) {
+            self.handleFileReadEnd(reader);
         });
 
-        uploader.on("uploadStart", function(file) {
-            window.console && console.log("uploadStart", this);
+        // 读取出错
+        uploader.on("fileReadError", function(reader) {
+            self.handleFileReadError(reader);
         });
 
-        uploader.on("uploadProgress", function(file) {
-            window.console && console.log("uploadProgress", this);
-            // this.pause()
+        // 开始上传
+        uploader.on("uploadStart", function() {
+            self.handleUploadStart();
         });
 
-        uploader.on("uploadEnd", function(file) {
-            window.console && console.log("uploadEnd", this);
+        // 上传中
+        uploader.on("uploadProgress", function() {
+            self.handleUploadProgress();
         });
 
-        uploader.on("uploadPause", function(file) {
-            window.console && console.log("uploadPause", this);
+        // 上传完毕
+        uploader.on("uploadEnd", function(result) {
+            self.handleUploadEnd(result);
         });
 
-        uploader.on("uploadResume", function(file) {
-            window.console && console.log("uploadResume", this);
-        });
-
-        uploader.on("uploadError", function(file) {
-            window.console && console.log("uploadError", this);
-            debugger
+        // 上传出错
+        uploader.on("uploadError", function() {
+            self.handleUploadError();
         });
     }
 
@@ -115,31 +114,72 @@
 
         // 绑定: 从文件域添加文件
         self.nodes.fileIpt.on("change", function(e) {
-            if (self.uploader) {
-                self.uploader.add(e.target.files);
+            var file = e.target.files[0];
+            if ( !self.checkFile(file) ) {
+                return;
             }
-        });
-
-        // 绑定 ： 开始
-        $("#beginUpload").on("click", function(e) {
-            self.uploader.upload();
-        });
-
-        // 绑定 ： 暂停
-        $("#pause").on("click", function(e) {
-            self.uploader.pause();
-        });
-
-        // 绑定 ： 继续
-        $("#resume").on("click", function(e) {
-            self.uploader.resume();
-        });
-
-        // 绑定 ： 取消
-        $("#cancle").on("click", function(e) {
-            self.uploader.cancle();
+            self.getUploadArgs(function(uploadUrl) {
+                file.uploadUrl = uploadUrl;
+                self.uploader.add(file);
+            });
         });
     }
+
+    // 检查文件是否符合要求，并执行错误提示
+    ns.VideoUploadClass.prototype.checkFile = function(file) {
+        var self = this;
+        var name = file.name;
+        var format = name.split(".").pop();
+        var tip = "";
+        var result = true;
+        if ( file.size > +self.ops.maxSize ) { // 尺寸错误
+            tip = self.ops.sizeTip;
+            result = false;
+        } else if ( self.ops.acceptedFormat !== "*" && (name.indexOf(".") === -1 || self.ops.acceptedFormat.indexOf(format) === -1) ) { // 格式错误
+            tip = self.ops.formateTip;
+            result = false;
+        }
+        self.handleError(tip);
+        return result;
+    }
+
+    ns.VideoUploadClass.prototype.handleFileReadStart = function(reader) {
+        var self = this;
+    }
+
+    ns.VideoUploadClass.prototype.fileReadProgress = function(progress) {
+        var self = this;
+    }
+
+    ns.VideoUploadClass.prototype.handleFileReadEnd = function(reader) {
+        var self = this;
+    }
+
+    ns.VideoUploadClass.prototype.handleFileReadError = function(reader) {
+        var self = this;
+    }
+
+    ns.VideoUploadClass.prototype.handleUploadStart = function() {
+        var self = this;
+    }
+
+    ns.VideoUploadClass.prototype.handleUploadProgress = function() {
+        var self = this;
+    }
+
+    ns.VideoUploadClass.prototype.handleUploadEnd = function() {
+        var self = this;
+    }
+
+    ns.VideoUploadClass.prototype.handleUploadError = function() {
+        var self = this;
+    }
+
+    // 选择的文件不符合要求
+    ns.VideoUploadClass.prototype.handleError = function(tip) {
+        var self = this;
+    }
+
 })(jQuery, ajk);
 
 
