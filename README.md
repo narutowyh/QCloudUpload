@@ -109,7 +109,7 @@ $("#file").on("change", function(e) {
 ```
 
 ### cancle: 移除`@pieceHash`文件
-* 用于唯一标识视频的`[pieceHash]`字段
+* 参数： 用于唯一标识视频的`[pieceHash]`字段
 * 如果被操作的文件正在上传，会停止上传并将其移除
 * 不传參数时`移除所有上传`
 * 移除后，文件及其上传进程都会被删掉，不可逆
@@ -144,16 +144,16 @@ setTimeout(function() {
 * return `true` or `false`
 
 ### upload: 上传`@pieceHash`文件
-* 用于唯一标识视频的`[pieceHash]`字段
+* 参数： 用于唯一标识视频的`[pieceHash]`字段
 * 不传參数时`上传所有文件`
 * 若文件未暂停状态则继续上传
 
 ### pause: 暂停`@pieceHash`文件上传
-* 用于唯一标识视频的`[pieceHash]`字段
+* 参数： 用于唯一标识视频的`[pieceHash]`字段
 * 不传參数时`暂停所有上传`
 
 ### resume: 让被暂停的`@pieceHash`文件继续上传
-* 用于唯一标识视频的`[pieceHash]`字段
+* 参数： 用于唯一标识视频的`[pieceHash]`字段
 * 不传參数时`全部继续上传`
 * 正在上传中或已上传完毕的文件不受控制
 
