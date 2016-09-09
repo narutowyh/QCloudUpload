@@ -348,7 +348,7 @@
             onuploadEnd : function(uploader, r) {
                 var result = self.trigger("uploadEnd", [uploader, r]);
                 if ( self.isAllUploaded() ) {
-                    self.trigger("allCompleted", [uploader, reader]);
+                    self.trigger("allCompleted", [uploader]);
                 }
                 return result;
             },
