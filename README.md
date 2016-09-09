@@ -54,6 +54,26 @@ $("#file").on("change", function(e) {
         uploader.add(file); // 添加视频
     });
 });
+
+// 一个[xxx.getUploadArgs]的实现例子：
+xxx.getUploadArgs = function(callback) {
+    $.ajax({
+        url : "http://vip.yaohuiwang.broker.anjuke.test/ajax/house/mediaUpload?action=upload",
+        type : "get",
+        dataType : "json",
+        data : {},
+        success : function(r) {
+            if (r.data.sign) {
+                callback && callback( self.ops.hostName + self.ops.appid + "/" + r.data.bucketName + r.data.path + "?sign=" + encodeURIComponent(r.data.sign) );
+            } else {
+                window.console && console.error(">> 获取上传参数失败");
+            }
+        },
+        error : function(err) {
+            window.console && console.log(">> 获取上传参数失败");
+        }
+    });
+}
 ```
 
 ## 获取文件信息
