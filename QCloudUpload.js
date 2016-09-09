@@ -388,11 +388,20 @@
         var reader = newReader();
         reader.onload = function(e) {
             _file.pieceHash = getSha1(e.target.result);
-
             self.fileList.push(_file);
-
-            // 初始化此视频的上传器
-            self._initUploader(_file);
+            if (URL.createObjectURL) {
+                var videoUrl = URL.createObjectURL(_file);
+                var v = document.createElement("video");
+                v.style.display = "none";
+                v.oncanplaythrough = function(e) {
+                    _file.duration = this.duration;
+                    v.remove();
+                    // 初始化此视频的上传器
+                    self._initUploader(_file);
+                }
+                document.body.appendChild(v);
+                v.src = videoUrl;
+            }
         }
         var blob = blobSlice(_file, 0, 128);
         reader.readAsDataURL( blob );

@@ -81,7 +81,7 @@ $("#file").on("change", function(e) {
 
 ## 获取文件信息
 * 可以在`on`方法订阅的`回调函数中`获得以下信息：
-* 注 ： `pieceHash`和`hash`两个字段是组件填进`file`对象中的，只有在回调中才存在，在`<input type="file">` 的`onchange`中是没有的!
+* 注 ： `pieceHash`、`duration`和`hash`两个字段是组件填进`file`对象中的，只有在回调中才存在，在`<input type="file">` 的`onchange`中是没有的!
 
 ```
 // this.state [上传状态]:
@@ -98,8 +98,9 @@ $("#file").on("change", function(e) {
 {
     pieceHash : "2354d4fadf45sdfsdd",
     hash : "4a5sd4f6sdf4..." // 文件真正的hash值，第一片读取后才会填入，可用于调试
+    duration : 24.02,        // 视频时长（s）
     name : "江北房源.mp4",
-    size : 58943441, // B
+    size : 58943441,         // B
     ...
 }
 ```
@@ -277,5 +278,7 @@ setTimeout(function() {
 * 计算上传速度的方法可以调整为
 * 自己封装一个ajax，便可以除去jQuery的依赖
 * 剩余时间计算的不好
+* 将视频时长封装进来
+
 
 [api]: https://www.qcloud.com/doc/product/314/3498#3.3-.E5.88.9B.E5.BB.BA.E8.A7.86.E9.A2.91.3A(.E5.88.86.E7.89.87.E4.B8.8A.E4.BC.A0.2C-.E7.AC.AC.E4.B8.80.E7.89.87) "微视频API文档"
