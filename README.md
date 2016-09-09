@@ -48,7 +48,11 @@ $("#file").on("change", function(e) {
     file.video_title  = "母猪的产后护理.avi";         // 设置视频标题
     file.video_desc   = "母猪产后...blah blah blah"; // 设置视频描述
     file.magicContext = "http://xxxx";              // 设置用于透传回调用者的业务后台的字段
-    uploader.add(file);
+
+    xxx.getUploadArgs(function(uploadUrl) {
+        file.uploadUrl = uploadUrl; // ⚠️此步必需：将获取回来的上传地址存入file.uploadUrl
+        uploader.add(file); // 添加视频
+    });
 });
 ```
 
@@ -117,18 +121,21 @@ uploader.on("addFile", function(file) {
     }
 });
 
+// 同时选择多部视频（<input type="file" multiple>）
 $("#file").on("change", function(e) {
     var files = e.target.files;
+
     for (var i =0, len = files.length; i < len; ++i) {
         (function(index) {
             var file = files[index];
 
             xxx.getUploadArgs(function(uploadUrl) {
-                file.uploadUrl = uploadUrl; // ⚠️此步必需：将上传地址存入file.uploadUrl
+                file.uploadUrl = uploadUrl;
                 uploader.add(file);
             });
         })(i);
     }
+
 });
 ```
 
@@ -152,7 +159,12 @@ uploader.on("uploadCancle", function() {
 });
 
 $("#file").on("change", function(e) {
-    uploader.add(e.target.files[0]);
+    var file = e.target.files[0];
+
+    xxx.getUploadArgs(function(uploadUrl) {
+        file.uploadUrl = uploadUrl;
+        uploader.add(file);
+    });
 });
 
 // 10s未上传完成则取消文件的上传
