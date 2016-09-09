@@ -25,7 +25,7 @@ $("#file").on("change", function(e) {
     // 通过业务的接口去获取视频的上传地址[@uploadUrl]，（视频服务器要求每个视频都需要动态请求回一个有效的上传地址，参见[微视频api][api]）
     // [xxx.getUploadArgs]方法请在业务中自行实现
     xxx.getUploadArgs(function(uploadUrl) {
-        file.uploadUrl = uploadUrl; // ⚠️此步必需：将上传地址存入file.uploadUrl
+        file.uploadUrl = uploadUrl; // ⚠️此步必需：将获取回来的上传地址存入file.uploadUrl
         uploader.add(file); // 添加视频
     });
 });
