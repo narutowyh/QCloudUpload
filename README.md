@@ -26,7 +26,9 @@ $("#file").on("change", function(e) {
     // [xxx.getUploadArgs]方法请在业务中自行实现
     xxx.getUploadArgs(function(uploadUrl) {
         file.uploadUrl = uploadUrl; // ⚠️此步必需：将获取回来的上传地址存入file.uploadUrl
+
         uploader.add(file); // 添加视频
+
     });
 });
 
