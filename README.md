@@ -40,7 +40,7 @@ xxx.getUploadArgs = function(callback) {
         data : {},
         success : function(r) {
             if (r.data.sign) {
-                callback && callback( self.ops.hostName + self.ops.appid + "/" + r.data.bucketName + r.data.path + "?sign=" + encodeURIComponent(r.data.sign) );
+                callback && callback( "http://web.video.myqcloud.com/files/v1/10011010/" + r.data.bucketName + r.data.path + "?sign=" + encodeURIComponent(r.data.sign) );
             } else {
                 window.console && console.error(">> 获取上传参数失败");
             }
