@@ -16,7 +16,7 @@
 |appid         |可选|参见[微视频api][api] （默认值10011010）|
 |minSize       |可选|最小文件大小（B）|
 |maxSize       |可选|最大文件大小（B）|
-|maxUpNumOnce  |可选|可以并发上传多少部|
+|maxUpNumOnce  |可选|可以并发上传多少部()|
 |maxUpNumAll   |可选|一共可以上传多少部|
 
 

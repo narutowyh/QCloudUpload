@@ -6,6 +6,30 @@
 
 * 支持断点续传
 
+## 简单的例子
+* 更多例子请参考文件夹中的`demo-component`实例
+
+```
+// 初始化实例
+var uploader = new QCloudUpload();
+
+// 视频添加进来后立即上传
+uploader.on("addFile", function(file) {
+    this.upload();
+});
+
+// 通过 [uploader.add] 方法添加视频
+$("#file").on("change", function(e) {
+    var file = e.target.files[0];
+
+    // 通过业务的接口去获取视频的上传地址[@uploadUrl]，（视频服务器要求每个视频都需要动态请求回一个有效的上传地址，参见[微视频api][api]）
+    xxx.getUploadArgs(function(uploadUrl) {
+        file.uploadUrl = uploadUrl; // ⚠️此步必需：将上传地址存入file.uploadUrl
+        uploader.add(file); // 添加视频
+    });
+});
+```
+
 ## 视频信息的设置(若需要)
 * 文件可以配置的信息参见：[微视频api][api]
 * 传递方法：在`<input type="file">`的`onchange`事件中将同名参数填入`file`对象中，例：
@@ -23,7 +47,7 @@ $("#file").on("change", function(e) {
     file.video_title  = "母猪的产后护理.avi";         // 设置视频标题
     file.video_desc   = "母猪产后...blah blah blah"; // 设置视频描述
     file.magicContext = "http://xxxx";              // 设置用于透传回调用者的业务后台的字段
-    uploader.add(e.target.files);
+    uploader.add(file);
 });
 ```
 
@@ -98,7 +122,6 @@ $("#file").on("change", function(e) {
         (function(index) {
             var file = files[index];
 
-            // 通过业务的接口去获取视频的上传地址 [@uploadUrl]（视频服务器要求每个视频都需要动态请求回一个有效的上传地址）
             xxx.getUploadArgs(function(uploadUrl) {
                 file.uploadUrl = uploadUrl; // ⚠️此步必需：将上传地址存入file.uploadUrl
                 uploader.add(file);
@@ -187,7 +210,8 @@ setTimeout(function() {
 * [微视频服务器错误对照表](https://www.qcloud.com/doc/product/227/1833#4-proxy-.E9.94.99.E8.AF.AF.E7.A0.81)
 
 ### 实例
-* 参见文件夹中的demo-component，一个基于QCloudUpload.js封装出来的一个组件，带有尺寸、格式的校验功能。
+* demo-component > [upload]，一个带有尺寸、格式的校验功能只能上传一部视频的实例
+* demo-component > [multi-upload]，一个带有尺寸、格式的校验功能可以同时上传多部视频的实例（待完善）
 
 ### 断点续传
 * 断点续传的功能组件已封装好，用户再次上传曾上传过的视频时会自动从相应`进度`开始上传
