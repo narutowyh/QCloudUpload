@@ -156,6 +156,11 @@
 
                 // 秒传成功
                 if (r.data.access_url) {
+                    self.state.uploadedData = self.file.size;
+                    self.state.progress = 100;
+                    self.state.speed = 0; // 网速（B/s）
+                    self.state.remainTime = 0; // 剩余时间（s）
+                    self.ops.onuploadProgress(self);
                     self.uploadCompleted(r);
                     return;
                 } else if (r.data.offset !== undefined && r.data.session) {
@@ -220,7 +225,6 @@
                     var ts_used = (ts_end - ts_start) / 1000; // 上传此片所用的时间，（s）
                     self.state.speed = self.slice_size / ts_used; // 网速（B/s）
                     self.state.remainTime = (file.size - self.state.uploadedData) / self.state.speed; // 剩余时间（s）
-
                     self.offset = r.data.offset + self.slice_size;
                     self.ops.onuploadProgress(self);
                     self.uploadNextSlices();
@@ -281,7 +285,7 @@
 
     // 继续上传
     Uploader.prototype.resume = function() {
-        if (!this.state.uploading) {
+        if (!this.state.uploading && !this.state.succeed) {
             this.state.uploading = true;
             this.uploadNextSlices();
         }
