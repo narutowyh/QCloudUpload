@@ -246,8 +246,8 @@ setTimeout(function() {
 * [微视频服务器错误对照表](https://www.qcloud.com/doc/product/227/1833#4-proxy-.E9.94.99.E8.AF.AF.E7.A0.81)
 
 ### 实例
-* demo-component > [upload]，一个带有尺寸、格式的校验功能只能上传一部视频的实例
-* demo-component > [multi-upload]，一个带有尺寸、格式的校验功能可以同时上传多部视频的实例（待完善）
+* demo-component > [upload]，一个带有视频大小、视频格式的校验功能只能上传一部视频的实例
+* demo-component > [multi-upload]，一个带有视频大小、视频格式的校验功能可以同时上传多部视频的实例（待完善）
 
 ### 断点续传
 * 断点续传的功能组件已封装好，用户再次上传曾上传过的视频时会自动从相应`进度`开始上传
