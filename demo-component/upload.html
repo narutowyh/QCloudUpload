@@ -35,9 +35,9 @@
 $(function() {
     new ajk.VideoUploadClass({
         fileIptSlter : "#file",
-        getUpArgsApi : "<php echo '/ajax/house/mediaUpload?action=upload' >",
-        hostName : "<php echo 'http://web.video.myqcloud.com/files/v1/' >",
-        appid : "<php echo '10011010' >",
+        getUpArgsApi : "<?php echo '/ajax/house/mediaUpload?action=upload' ?>",
+        hostName : "<?php echo 'http://web.video.myqcloud.com/files/v1/' ?>",
+        appid : "<?php echo '10011010' ?>",
         maxSize : <?php echo '300 * 1024 * 1024' ?>,
         acceptedFormat   : "<?php echo 'avi,wmv,mpeg,mp4,mov,flv,3gp' ?>"
     });
