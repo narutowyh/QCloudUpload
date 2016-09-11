@@ -1,7 +1,12 @@
 # QCloud 视频上传
-* 依赖 sha1.js
 
-> 只要在页面上正确实现了`window.hex_sha1`方法即可。上传时组件会将整部视频读入并尝试用`window.hex_sha1`函数计算读入文件的`sha1`值。并在第一片时将其传给视频服务器，当所有分片上传完成之后，服务器会比对开始传过去的`sha1`值和服务器自己算出来的`sha1`值是否相同，若不相同会返回错误信息:`-174 ERROR_CMD_COS_SHA_NOT_EQU 文件SHA不一致
+## 介绍
+* `QCloudUpload.js`为用于向腾讯[微视频][api]云服务器上传视频的SDK，提供简单的方法、接口用于向[微视频][api]服务器上传视频，并获得上传的结果数据。
+* 视频文件采用分片上传的方式。
+
+## 依赖
+
+> 依赖`sha1.js`。其实只要在页面上正确实现了用于计算`sha1`值的`window.hex_sha1`方法即可。上传时组件会将整部视频读入并尝试用`window.hex_sha1`函数计算读入文件的`sha1`值。并在上传第一片时将其传给视频服务器，当所有分片上传完成之后，服务器会比对开始传过去的`sha1`值和服务器自己算出来的`sha1`值是否相同，若不相同会返回错误信息:`-174 ERROR_CMD_COS_SHA_NOT_EQU 文件SHA不一致
 `
 
 * 支持断点续传
@@ -38,16 +43,16 @@ $("#file").on("change", function(e) {
 });
 
 
-// 一个[xxx.getUploadArgs]的实现例子：
+// 一个[xxx.getUploadArgs]的实现例子(基于jQusery)：
 xxx.getUploadArgs = function(callback) {
     $.ajax({
-        url : "http://vip.yaohuiwang.broker.anjuke.test/ajax/house/mediaUpload?action=upload",
+        url : "http://upload.narutowyh.com/ajax/qcloudupload",
         type : "get",
         dataType : "json",
         data : {},
         success : function(r) {
-            if (r.data.sign) {
-                callback && callback( "http://web.video.myqcloud.com/files/v1/10011010/" + r.data.bucketName + r.data.path + "?sign=" + encodeURIComponent(r.data.sign) );
+            if (r && r.data && r.data.sign) {
+                callback && callback( "http://web.video.myqcloud.com/files/v1/[appid]/" + r.data.bucketName + r.data.path + "?sign=" + encodeURIComponent(r.data.sign) );
             } else {
                 window.console && console.error(">> 获取上传参数失败");
             }
