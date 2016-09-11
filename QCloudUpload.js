@@ -1,5 +1,9 @@
 (function($) {
 
+    var _ajax = function(op) {
+        
+    }
+
     // Uploader为用于上传文件的类，供组件类[@VideoUploadClass]内部使用，一个Uploader实例对应一部视频上传
     var Uploader = function(file, ops) {
         this.ops = ops;
@@ -145,6 +149,8 @@
         if ( file.magicContext ) { // 转码成功后,用于透传回调用者的业务后台
             formData.append("magicContext", file.magicContext);
         }
+        
+        // 第一片
         $.ajax({
             type : 'post',
             url : file.uploadUrl,
@@ -311,6 +317,12 @@
         }
     }
 
+    // 检查this是否被添加过
+    Uploader.prototype.isExist = function() {
+        var gen = this.ops._gener;
+        return gen.isExist(this.file.pieceHash);
+    }
+
 // =======================================================================================================================================
 
     window.QCloudUpload = function(op) {
@@ -377,8 +389,10 @@
     // api ***************************************************
 
     //setUploadRul
-    QCloudUpload.prototype.setUploadUrl = function(newUrl) {
-        this.ops.uploadUrl = newUrl;
+    QCloudUpload.prototype.isSupportUpload = function() {
+        return !!( (window.FileReader) &&
+                   (window.FormData) 
+               );
     }
 
     // 将选中的文件@files（onChange获取的e.target.files对象）添加到上传列表
