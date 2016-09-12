@@ -293,10 +293,12 @@ setTimeout(function() {
 #### 不兼容浏览器出现的问题 ?
 
 # 问题
-* 自己封装一个ajax，便可以除去jQuery的依赖
 * 将视频时长的计算方式兼容性待查文档
 * 文件过大时会返回错误： `-181 ERROR_CMD_COS_ERROR 存储后端错误`(尝试的文件大小为1.14GB，具体限制待研究)
 * 多个窗口／tab同时上传统一部视频时：两个上传都会报错：``
 
+## who use?
+
+* [发房]
 
 [api]: https://www.qcloud.com/doc/product/314/3498#3.3-.E5.88.9B.E5.BB.BA.E8.A7.86.E9.A2.91.3A(.E5.88.86.E7.89.87.E4.B8.8A.E4.BC.A0.2C-.E7.AC.AC.E4.B8.80.E7.89.87) "微视频API文档"

@@ -1,7 +1,19 @@
 (function($) {
 
     var _ajax = function(op) {
-        
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304) {
+                    var result = JSON.parse( xhr.responseText );
+                    op.success(result);
+                } else {
+                    op.error(xhr);
+                }
+            }
+        }
+        xhr.open("post", op.url, true);
+        xhr.send(op.data);
     }
 
     // Uploader为用于上传文件的类，供组件类[@VideoUploadClass]内部使用，一个Uploader实例对应一部视频上传
@@ -149,15 +161,11 @@
         if ( file.magicContext ) { // 转码成功后,用于透传回调用者的业务后台
             formData.append("magicContext", file.magicContext);
         }
-        
+
         // 第一片
-        $.ajax({
-            type : 'post',
+        _ajax({
             url : file.uploadUrl,
             data : formData,
-            dataType : "json",
-            processData : false,
-            contentType : false,
             success : function(r) {
 
                 // 秒传成功
@@ -215,13 +223,9 @@
 
         // 上传此片的时间点
         var ts_start = +new Date();
-        $.ajax({
-            type : 'post',
+        _ajax({
             url : file.uploadUrl,
             data : formData,
-            dataType : "json",
-            processData : false,
-            contentType : false,
             success : function(r) {
                 if (r.data.offset != undefined) { // 继续上传
 
@@ -391,7 +395,7 @@
     //setUploadRul
     QCloudUpload.prototype.isSupportUpload = function() {
         return !!( (window.FileReader) &&
-                   (window.FormData) 
+                   (window.FormData)
                );
     }
 
@@ -545,4 +549,4 @@
         }
     }
 
-})(jQuery);
+})();
