@@ -108,6 +108,7 @@ $("#file").on("change", function(e) {
     pieceHash : "2354d4fadf45sdfsdd", // 文件前128B的hash值，用来唯一标记一个文件
     hash : "4a5sd4f6sdf4..." // 文件真正的hash值，（考虑到性能，只在）第一片上传时读取整个文件后才会填入，可用于调试(上传出错时便于获取到本地生成的文件的hash)
     duration : 24.02,        // 视频时长（s），基于video计算，同样只存在于回调中
+    readProgress : 72,    // 文件已读入的进度，只保留整数，（％），未在`file reader`读取进度中时，值为`-1`
     name : "江北房源.mp4",
     size : 58943441,         // B
     ...(同file API)
@@ -241,7 +242,7 @@ setTimeout(function() {
 |方法名|回调参数|执行时机|return false时|
 |----|---|---|---|
 |addFile ( file )            |被添加的文件|文件`被添加到上传列表`时执行，<br>  回调中的`@file`中会首次被填进`pieceHash` 字段。<br> 选中后立即自动上传请在此回调中调用`this.upload()`|此文件将会被忽略|
-|fileReadError ( reader )    |reader对象的引用   |文件`读取失败`时执行，停止执行后续过程|--|
+|fileReadError ( reader )    |reader对象的引用   |文件`读取失败`时执行，停止执行后续过程，即文件未被添加到上传列表|--|
 |fileReadStart ( reader )    |reader对象的引用   |文件`开始读取`时执行|不会继续读取整个文件（文件过大时有用），<br> 后续仍然可以对其执行upload|--|
 |fileReadProgress ( progress ) |progress对象的引用   |文件`读取中持续`执行，不支持的浏览器不执行.<br> `progress.lengthComputable`为`true`时<br> 可以拿到`progress.loaded`, `progress.total`|取消本次读取，后续仍然可以对其执行upload|--|
 |fileReadEnd ( reader )      |reader对象的引用   |文件`读取完毕`时执行|此文件不会上传，<br> 后续仍然可以对其执行upload|--|
@@ -272,10 +273,6 @@ setTimeout(function() {
 
 ### 上传速度的计算
 * 计算的是: 片大小`除以`每片发送出去的时间点和返回时间点的差值
-
-### 剩余时间的计算？？？
-* 直接计算剩余量除以此刻的上传速度的出来的值`跳跃`明显，显得奇怪
-* 还没有找到好的办法
 
 ### 兼容性
 #### 兼容浏览器 ?
