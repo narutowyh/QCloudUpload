@@ -16,6 +16,10 @@
         xhr.send(op.data);
     }
 
+    function toFixed2( num ) {
+        return +(+num).toFixed(2);
+    }
+
     // Uploader为用于上传文件的类，供组件类[@VideoUploadClass]内部使用，一个Uploader实例对应一部视频上传
     var Uploader = function(file, ops) {
         this.ops = ops;
@@ -104,6 +108,7 @@
         reader.onprogress = function(e) {
 
             // 回调3 ： onfileReadProgress
+            file.readProgress = Math.round( e.loaded / e.total * 100 );
             if ( self.ops.onfileReadProgress(self, e) === false ) {
                 e.target.abort();
             }
@@ -189,6 +194,7 @@
                 } else { // 有错误
 
                     // 回调7 uploadError
+                    self.state.uploading = false;
                     self.ops.onuploadError(self);
                 }
             },
@@ -196,6 +202,7 @@
                 window.console && console.error(">> 第一片信息上传失败，请刷新重试");
 
                 // 回调7 uploadError
+                self.state.uploading = false;
                 self.ops.onuploadError(self);
             }
         });
@@ -230,7 +237,7 @@
                 if (r.data.offset != undefined) { // 继续上传
 
                     self.state.uploadedData = r.data.offset;
-                    self.state.progress = self.state.uploadedData / file.size * 100;
+                    self.state.progress = ( self.state.uploadedData / file.size * 100 ).toFixed(2);
                     var ts_end = +new Date(); // 此片上传完成的时间点
                     var ts_used = (ts_end - ts_start) / 1000; // 上传此片所用的时间，（s）
                     self.state.speed = self.slice_size / ts_used; // 网速（B/s）
@@ -245,6 +252,7 @@
             error : function(err) {
 
                 // 回调7 上传出错
+                self.state.uploading = false;
                 self.ops.onuploadError(self);
                 window.console && console.error("upload remained slices error: ", err);
             }
@@ -400,9 +408,10 @@
     }
 
     // 将选中的文件@files（onChange获取的e.target.files对象）添加到上传列表
-    QCloudUpload.prototype.add = function(file) {
+    QCloudUpload.prototype.add = function(file, uploadUrl) {
         var self = this;
         var _file = file.length === undefined ? file : file[0];
+        _file.uploadUrl = uploadUrl;
         var reader = newReader();
         reader.onload = function(e) {
             _file.pieceHash = getSha1(e.target.result);

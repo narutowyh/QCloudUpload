@@ -12,9 +12,8 @@
 * 支持断点续传
 
 ## 简单的例子
-* 更多例子请参考文件夹中的`demo-component`实例
 * 所有支持的回调方法见文末
-* 下面的例子中，`[xxx.getUploadArgs]方法请在业务中自行实现!`。为了权限管理，微视频服务器要求每个视频都需要动态请求回一个有效的上传地址，参见[微视频api][api]，所以在业务中需要一个返回上传地址的接口。
+* 下面的例子中，`[xxx.getUploadArgs]方法请在业务中自行实现!`（为了权限管理，微视频服务器要求每个视频都需要动态请求回一个有效的上传地址，参见[微视频api][api]，所以在业务中需要一个返回上传地址的接口。）
 
 ```
 // 初始化实例
@@ -34,9 +33,8 @@ $("#file").on("change", function(e) {
     var file = e.target.files[0];
 
     xxx.getUploadArgs(function(uploadUrl) {
-        file.uploadUrl = uploadUrl; // ⚠️此步必需：将获取回来的上传地址存入file.uploadUrl
 
-        uploader.add(file); // 添加视频
+        uploader.add(file, uploadUrl); // 添加视频，触发onaddFile -> 视频将会被上传到地址［@uploadUrl］
 
     });
 });
@@ -45,7 +43,7 @@ $("#file").on("change", function(e) {
 // ** 这里给出一个[xxx.getUploadArgs]方法的实现例子(基于jQusery)：
 xxx.getUploadArgs = function(callback) {
     $.ajax({
-        url : "http://upload.narutowyh.com/ajax/qcloudupload",
+        url : "http://upload.narutowyh.com/ajax/getqcloudargs",
         type : "get",
         dataType : "json",
         data : {},
@@ -82,8 +80,7 @@ $("#file").on("change", function(e) {
     file.magicContext = "http://xxxx";              // 设置用于透传回调用者的业务后台的字段
 
     xxx.getUploadArgs(function(uploadUrl) {
-        file.uploadUrl = uploadUrl; // ⚠️此步必需：将获取回来的上传地址存入file.uploadUrl
-        uploader.add(file); // 添加视频
+        uploader.add(file, uploadUrl); // 添加视频
     });
 });
 ```
@@ -108,7 +105,7 @@ $("#file").on("change", function(e) {
     pieceHash : "2354d4fadf45sdfsdd", // 文件前128B的hash值，用来唯一标记一个文件
     hash : "4a5sd4f6sdf4..." // 文件真正的hash值，（考虑到性能，只在）第一片上传时读取整个文件后才会填入，可用于调试(上传出错时便于获取到本地生成的文件的hash)
     duration : 24.02,        // 视频时长（s），基于video计算，同样只存在于回调中
-    readProgress : 72,    // 文件已读入的进度，只保留整数，（％），未在`file reader`读取进度中时，值为`-1`
+    readProgress : 72,    // 文件已读入的进度，只保留整数，（％）
     name : "江北房源.mp4",
     size : 58943441,         // B
     ...(同file API)
@@ -143,7 +140,7 @@ this.isExist() // 当前文件是否被add过
 
 ### add: 将选中的文件添加到上传列表
 * 参数必需是文件，例如`<input type="file">`元素`onchange`后的`e.target.files[0]`
-* 触发`onaddFile`
+* `add`过后会触发`onaddFile`事件
 
 ```
 var uploader = new QCloudUpload();
@@ -165,8 +162,7 @@ $("#file").on("change", function(e) {
             var file = files[index];
 
             xxx.getUploadArgs(function(uploadUrl) {
-                file.uploadUrl = uploadUrl;
-                uploader.add(file);
+                uploader.add(file, uploadUrl);
             });
         })(i);
     }
@@ -198,8 +194,7 @@ $("#file").on("change", function(e) {
     var file = e.target.files[0];
 
     xxx.getUploadArgs(function(uploadUrl) {
-        file.uploadUrl = uploadUrl;
-        uploader.add(file);
+        uploader.add(file, uploadUrl);
     });
 });
 
@@ -214,6 +209,7 @@ setTimeout(function() {
 ### isAllUploaded: 监测是否所有文件`都已经上传完毕`
 * 参数： `无`
 * return `true` or `false`
+* 全部上传完毕的操作建议放在`onallCompleted`事件中进行
 
 ### upload: 上传`@pieceHash`文件
 * 参数： 用于唯一标识视频的`[pieceHash]`字段
@@ -241,10 +237,10 @@ setTimeout(function() {
 
 |方法名|回调参数|执行时机|return false时|
 |----|---|---|---|
-|addFile ( file )            |被添加的文件|文件`被添加到上传列表`时执行，<br>  回调中的`@file`中会首次被填进`pieceHash` 字段。<br> 选中后立即自动上传请在此回调中调用`this.upload()`|此文件将会被忽略|
-|fileReadError ( reader )    |reader对象的引用   |文件`读取失败`时执行，停止执行后续过程，即文件未被添加到上传列表|--|
-|fileReadStart ( reader )    |reader对象的引用   |文件`开始读取`时执行|不会继续读取整个文件（文件过大时有用），<br> 后续仍然可以对其执行upload|--|
-|fileReadProgress ( progress ) |progress对象的引用   |文件`读取中持续`执行，不支持的浏览器不执行.<br> `progress.lengthComputable`为`true`时<br> 可以拿到`progress.loaded`, `progress.total`|取消本次读取，后续仍然可以对其执行upload|--|
+|addFile ( file )            |被添加的文件|文件`被添加到上传列表`时执行，<br>  `pieceHash` 字段被填入|此文件将会被忽略|
+|fileReadError ( reader )    |reader对象的引用   |文件`读取失败`时执行，<br>文件不会被添加到上传列表|--|
+|fileReadStart ( reader )    |reader对象的引用   |文件`开始读取`时执行|不会继续读取整个文件。<br> 后续仍然可以对其执行upload|--|
+|fileReadProgress ( progress ) |progress对象的引用   |文件`读取中持续`执行，<br> `progress.lengthComputable`为`true`时<br> 可以拿到`progress.loaded`, `progress.total`|取消本次读取，后续仍然可以对其执行upload|--|
 |fileReadEnd ( reader )      |reader对象的引用   |文件`读取完毕`时执行|此文件不会上传，<br> 后续仍然可以对其执行upload|--|
 |uploadStart (  )            ||第一片的数据成功返回后，<br> 文件`开始上传`时执行|`暂停`上传，后续仍然可以对其执行upload|--|
 |uploadPause (  )            ||文件`暂停上传`时执行|--|
@@ -261,18 +257,11 @@ setTimeout(function() {
 * [微视频api][api]
 * [微视频服务器错误对照表](https://www.qcloud.com/doc/product/227/1833#4-proxy-.E9.94.99.E8.AF.AF.E7.A0.81)
 
-### 实例
-* demo-component > [upload]，一个带有视频大小、视频格式的校验功能只能上传一部视频的实例
-* demo-component > [multi-upload]，一个带有视频大小、视频格式的校验功能可以同时上传多部视频的实例（待完善）
-
 ### 断点续传
 * 断点续传的功能组件已封装好，用户再次上传曾上传过的视频时会自动从相应`进度`开始上传
 * 原理：微云服务器会自动判断要上传的视频是不是可以断点续传的视频，并在第一次分片请求回的`offset`字段中自动将`offset`设置好，后续分片从这个`offset`处开始取即可
 * 所以：刚进页面时`无法`获取上传过的视频和关闭页面时正在上传的视频及其进度，只有用户选择了某个视频并开始上传之后才能从服务器获取到这些信息
 * 已上传过的视频会被`秒传`
-
-### 上传速度的计算
-* 计算的是: 片大小`除以`每片发送出去的时间点和返回时间点的差值
 
 ### 兼容性
 #### 兼容浏览器 ?
@@ -290,8 +279,8 @@ setTimeout(function() {
 
 # 问题
 * 将视频时长的计算方式兼容性待查文档
-* 文件过大时会返回错误： `-181 ERROR_CMD_COS_ERROR 存储后端错误`(尝试的文件大小为1.14GB，具体限制待研究)
-* 多个窗口／tab同时上传统一部视频时：两个上传都会报错：``
+* 文件过大时服务器会返回错误： `-181 ERROR_CMD_COS_ERROR 存储后端错误`(上限：300MB，iphone6p录制3分50秒)
+* 多个窗口／tab同时上传统一部视频时：其中一个会引发错误（分片索引错误），并且不可以续传。另一个窗口中的上传可以一直正常执行。
 
 ## who use?
 
