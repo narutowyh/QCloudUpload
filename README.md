@@ -14,6 +14,7 @@
 ## 简单的例子
 * 更多例子请参考文件夹中的`demo-component`实例
 * 所有支持的回调方法见文末
+* 下面的例子中，`[xxx.getUploadArgs]方法请在业务中自行实现!`。为了权限管理，微视频服务器要求每个视频都需要动态请求回一个有效的上传地址，参见[微视频api][api]，所以在业务中需要一个返回上传地址的接口。
 
 ```
 // 初始化实例
@@ -32,8 +33,6 @@ uploader.on("addFile", function(file) {
 $("#file").on("change", function(e) {
     var file = e.target.files[0];
 
-    // 通过业务的接口去获取视频的上传地址[@uploadUrl]，（视频服务器要求每个视频都需要动态请求回一个有效的上传地址，参见[微视频api][api]）
-    // [xxx.getUploadArgs]方法请在业务中自行实现
     xxx.getUploadArgs(function(uploadUrl) {
         file.uploadUrl = uploadUrl; // ⚠️此步必需：将获取回来的上传地址存入file.uploadUrl
 
@@ -43,7 +42,7 @@ $("#file").on("change", function(e) {
 });
 
 
-// 一个[xxx.getUploadArgs]的实现例子(基于jQusery)：
+// ** 这里给出一个[xxx.getUploadArgs]方法的实现例子(基于jQusery)：
 xxx.getUploadArgs = function(callback) {
     $.ajax({
         url : "http://upload.narutowyh.com/ajax/qcloudupload",
